@@ -57,16 +57,10 @@ const server = Bun.serve<WebSocketInstance, {}>({
       }
     },
     open(ws) {
-      const serverEvent = {
-        name: "status",
-        data: "connected"
-      } as ServerEvent
-
       logger([
         Text("GREEN", "+"),
         Text("RESET", `${ws.data.id} connected`)
       ])
-      ws.send(JSON.stringify(serverEvent))
     },
     close(ws, code, message) {
       topicController.close(ws)

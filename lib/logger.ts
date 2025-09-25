@@ -32,25 +32,25 @@ export default function logger(
   messages: string[] | string,
   options?: Options
 ): string {
-  let logString = ""
+  let text = ""
 
   try {
     if (!Array.isArray(messages)) {
       messages = [messages]
     }
     
-    logString = messages.join(" ")
+    text = messages.join(" ")
 
     if (options?.timestamp) {
       const date = new Date()
-      const time = date.toLocaleTimeString()
-      logString = `[${time}] ${logString}`
+      const time = date.toLocaleTimeString().slice(0, 5)
+      text = `${colors.BG_GRAY}${colors.BLACK}${time}${colors.RESET} ${text}`
     }
 
-    console.info(logString)
+    console.info(text)
   } catch (err) {
     console.error(`${colors.RED}Error in logger:`, err, colors.RESET)
   }
 
-  return logString
+  return text
 }

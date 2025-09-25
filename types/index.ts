@@ -20,3 +20,10 @@ export type ServerEvent = {
   name: string
   data?: unknown
 }
+
+export type ChatMessage = {
+  user: string
+  message: string
+  topic: string
+  created_at: number
+}

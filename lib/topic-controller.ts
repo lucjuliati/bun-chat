@@ -24,8 +24,12 @@ export class TopicController {
           clients: [],
         }
 
-        await this.deleteTopic(topic)
-        await this.db.run(`INSERT INTO topics (name) VALUES (?)`, [topic])
+        const topicInstance = await this.db.get(`SELECT * FROM topics WHERE name = ?`, [topic])
+        console.log(topicInstance)
+
+        if (!topicInstance) {
+          await this.db.run(`INSERT INTO topics (name) VALUES (?)`, [topic])
+        }
         this.topics.set(topic, topicData)
       } else {
 
@@ -66,7 +70,7 @@ export class TopicController {
     }
   }
 
-  public publish(
+  public async publish(
     topic: string,
     client: WSClient,
     server: Bun.Server,
@@ -74,12 +78,25 @@ export class TopicController {
   ) {
     try {
       if (client.isSubscribed(topic)) {
-        const message = `[${topic}]: ${event.message}`
-        server.publish(topic, message)
+        const message = logger([
+          Text("YELLOW", `[${topic}]`),
+          Text("RESET", `${client.data.id}: ${event.message}`)
+        ], { timestamp: true })
 
-        logger([
-          Text("YELLOW", `${client.data.id}`),
-          Text("RESET", `[${topic}]: ${event.message}`)
+        const chatMessage = {
+          user: client.data.id,
+          message,
+          topic,
+          created_at: new Date().getTime()
+        }
+
+        server.publish(topic, JSON.stringify(chatMessage))
+
+        await this.db.run(`INSERT INTO messages (message, user, created_at, topic) VALUES (?, ?, ?, ?)`, [
+          event.message,
+          client.data.id,
+          new Date().getTime().toString(),
+          topic
         ])
       } else {
         client.send(JSON.stringify({ error: `Not subscribed to topic '${topic}'` }))
@@ -102,17 +119,10 @@ export class TopicController {
   public close(client: WSClient) {
     try {
       for (const topic of client.data.topics) {
-        console.log("topics", this.topics)
         const topicData = this.topics.get(topic)
-        console.log("data", topicData)
 
         if (topicData) {
           topicData.clients = topicData.clients.filter(c => c.data.id !== client.data.id)
-          console.log(topicData)
-
-          if (topicData.clients.length === 0) {
-            this.deleteTopic(topic)
-          }
         }
       }
 
