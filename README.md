@@ -1,6 +1,6 @@
 # Bun Chat
 
-Simple terminal chat application.
+Simple WebSockets based terminal chat application.
 
 ### Requirements
  - Bun: ^1.2.22
