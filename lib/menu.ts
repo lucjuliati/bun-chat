@@ -1,17 +1,18 @@
 import readline from "node:readline"
 
-const options = ["Create room", "List rooms", "Join room", "Quit"] as const
+const options = ["Create room", "List rooms", "Join room", "Help", "Quit"] as const
 let selected = 0
 
 type Option = typeof options[number]
 
 export type PostMessage = {
-  action: "create" | "join" | "list" | "quit"
+  action: "create" | "join" | "list" | "help" | "quit"
   topic?: string
   message?: string
 }
 
 const isTTY = !!process.stdin.isTTY
+console.log(isTTY)
 if (isTTY) process.stdin.setRawMode(true)
 
 export class Menu {
@@ -87,6 +88,9 @@ export class Menu {
         console.log("Joining room...")
         this.end({ action: "join" })
         break
+      case "Help":
+        this.end({ action: "help" })
+        break
       case "Quit":
         console.log("Disconnecting...!")
         this.end({ action: "quit" })
@@ -110,7 +114,8 @@ export class Menu {
         return this.createRoomPrompt()
       }
 
-      console.log("\nCreating room:", room)
+      console.log(`\n${room} Created!`)
+      console.log(`\nJoining ${room}...`)
       this.ws.send(JSON.stringify({ action: "subscribe", topic: "1" }))
 
       await new Promise((resolve) => setTimeout(resolve, 750))

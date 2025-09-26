@@ -3,15 +3,22 @@ export type WebSocketInstance = {
   topics: Set<string>
 }
 
-export type Topic = {
-  id: string
-  name: string
-  messages: string[]
-  clients: Bun.ServerWebSocket<WebSocketInstance>[],
+export class Topic {
+  id?: string
+  name?: string
+  messages: string[] = []
+  clients: Bun.ServerWebSocket<WebSocketInstance>[] = []
+
+  constructor({ name }: { name: string }) {
+    this.id = crypto.randomUUID()
+    this.name = name
+    this.messages = []
+    this.clients = []
+  }
 }
 
 export type SocketEvent = {
-  action: "subscribe" | "unsubscribe" | "publish"
+  action: "subscribe" | "unsubscribe" | "list_topics" | "publish"
   topic: string
   message?: string
 }

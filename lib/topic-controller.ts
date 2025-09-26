@@ -1,6 +1,7 @@
 import type { Database } from "sqlite"
-import type { SocketEvent, Topic, WebSocketInstance } from "../types"
+import type { SocketEvent, WebSocketInstance } from "../types"
 import logger, { Text } from "./logger"
+import { Topic } from "../types"
 
 type WSClient = Bun.ServerWebSocket<WebSocketInstance>
 
@@ -17,20 +18,14 @@ export class TopicController {
       let topicData = this.topics.get(topic)
 
       if (!topicData) {
-        topicData = {
-          id: crypto.randomUUID(),
-          name: topic,
-          messages: [],
-          clients: [],
-        }
-
+        const newTopic = new Topic({ name: topic })
         const topicInstance = await this.db.get(`SELECT * FROM topics WHERE name = ?`, [topic])
-        console.log(topicInstance)
 
         if (!topicInstance) {
           await this.db.run(`INSERT INTO topics (name) VALUES (?)`, [topic])
         }
-        this.topics.set(topic, topicData)
+
+        this.topics.set(topic, newTopic)
       } else {
 
         if (!topicData.clients.some(c => c.data.id === client.data.id)) {
@@ -101,6 +96,18 @@ export class TopicController {
       } else {
         client.send(JSON.stringify({ error: `Not subscribed to topic '${topic}'` }))
       }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  public async listTopics(client: WSClient) {
+    try {
+      const topics = await this.db.all(`SELECT * FROM topics`)
+      client.send(JSON.stringify({
+        name: "list_topics",
+        data: topics
+      }))
     } catch (err) {
       console.error(err)
     }

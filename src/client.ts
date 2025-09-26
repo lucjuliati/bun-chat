@@ -1,6 +1,6 @@
 import readline from "node:readline"
 import logger, { Text } from "../lib/logger"
-import type { SocketEvent } from "../types"
+import type { SocketEvent, Topic } from "../types"
 import { Menu, type PostMessage } from "../lib/menu"
 
 const ws = new WebSocket("ws://localhost:4000")
@@ -13,6 +13,16 @@ function handleInput(postMessage: PostMessage | null) {
     prompt: "> ",
   })
 
+  if (postMessage?.action == "help") {
+    handleCommand(rl, "/help")
+    return
+  }
+
+  if (postMessage?.action == "list") {
+    ws.send(JSON.stringify({ action: "list_topics" }))
+    return
+  }
+
   rl.on("line", (line) => {
     const message = line.trim()
 
@@ -22,7 +32,9 @@ function handleInput(postMessage: PostMessage | null) {
     }
 
     if (message.startsWith("/")) {
-      handleCommand(message, rl)
+      let args = message.split(" ")
+      args.shift()
+      handleCommand(rl, message, args)
       return
     }
 
@@ -35,10 +47,29 @@ function handleInput(postMessage: PostMessage | null) {
   rl.prompt()
 }
 
-ws.onmessage = (event) => {
-  const chatMessage = JSON.parse(event.data)
-  if (chatMessage.message) {
-    process.stdout.write(`${chatMessage.message}\n`)
+function handleCommand(
+  rl: readline.Interface,
+  command: string,
+  args?: string[]
+) {
+  if (command === "/join") {
+    console.log(command, args)
+  } else if (command === "/help") {
+    console.log("Available commands:", "/help", "/menu", "/quit", "/clear")
+    rl.prompt()
+  } else if (command === "/menu") {
+    menu.render()
+    rl.prompt()
+  } else if (command === "/quit") {
+    ws.close()
+    rl.close()
+    process.exit(0)
+  } else if (command === "/clear") {
+    console.clear()
+    rl.prompt()
+  } else {
+    console.log("Unknown command:", command)
+    rl.prompt()
   }
 }
 
@@ -58,22 +89,21 @@ ws.onclose = (data) => {
   process.exit(0)
 }
 
-function handleCommand(command: string, rl: readline.Interface) {
-  if (command === "/help") {
-    console.log("Available commands:", "/help", "/menu", "/quit", "/clear")
-    rl.prompt()
-  } else if (command === "/menu") {
-    menu.render()
-    rl.prompt()
-  } else if (command === "/quit") {
-    ws.close()
-    rl.close()
-    process.exit(0)
-  } else if (command === "/clear") {
-    console.clear()
-    rl.prompt()
-  } else {
-    console.log("Unknown command:", command)
-    rl.prompt()
+ws.onmessage = (event) => {
+  const eventData = JSON.parse(event.data)
+
+  if (eventData.message) {
+    process.stdout.write(`${eventData.message}\n`)
+  }
+
+  if (eventData.name == "list_topics") {
+    let rooms = ""
+    eventData.data.forEach((topic: Topic) => {
+      rooms += `${topic.name}\n`
+    })
+
+    console.log(`${rooms}\n`)
+    console.log("Join a room with /join <id>")
+    // rl.prompt()
   }
 }

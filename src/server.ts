@@ -1,7 +1,7 @@
 import database from "../lib/database"
 import logger, { Text } from "../lib/logger"
 import { TopicController } from "../lib/topic-controller"
-import type { ServerEvent, SocketEvent, WebSocketInstance } from "../types"
+import type { SocketEvent, WebSocketInstance } from "../types"
 import * as z from "zod"
 
 const db = await database.start()
@@ -24,8 +24,8 @@ const server = Bun.serve<WebSocketInstance, {}>({
       try {
         event = JSON.parse(message.toString())
         z.object({
-          topic: z.string(),
-          action: z.enum(["subscribe", "unsubscribe", "publish"]),
+          topic: z.string().optional(),
+          action: z.enum(["subscribe", "unsubscribe", "list_topics", "publish"]),
           message: z.string().optional(),
         }).parse(event)
 
@@ -46,6 +46,10 @@ const server = Bun.serve<WebSocketInstance, {}>({
         }
         case "unsubscribe": {
           topicController.unsubscribe(event.topic, ws)
+          break
+        }
+        case "list_topics": {
+          await topicController.listTopics(ws)
           break
         }
         case "publish": {
