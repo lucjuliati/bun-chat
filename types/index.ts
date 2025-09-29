@@ -3,6 +3,10 @@ export type WebSocketInstance = {
   topics: Set<string>
 }
 
+export type Connection = {
+  isConnected: boolean
+  topic: string | undefined
+}
 export class Topic {
   id?: string
   name?: string

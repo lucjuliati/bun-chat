@@ -1,7 +1,7 @@
-import database from "../lib/database"
-import logger, { Text } from "../lib/logger"
-import { TopicController } from "../lib/topic-controller"
-import type { SocketEvent, WebSocketInstance } from "../types"
+import database from "../../lib/database"
+import logger, { Text } from "../../lib/logger"
+import { TopicController } from "../../lib/topic-controller"
+import type { SocketEvent, WebSocketInstance } from "../../types"
 import * as z from "zod"
 
 const db = await database.start()

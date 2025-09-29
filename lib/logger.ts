@@ -26,6 +26,7 @@ export function Text(color: ColorKey, message: string): string {
 
 type Options = {
   timestamp?: boolean
+  supressLog?: boolean
 }
 
 export default function logger(
@@ -38,19 +39,25 @@ export default function logger(
     if (!Array.isArray(messages)) {
       messages = [messages]
     }
-    
+
     text = messages.join(" ")
 
     if (options?.timestamp) {
       const date = new Date()
       const time = date.toLocaleTimeString().slice(0, 5)
-      text = `${colors.BG_GRAY}${colors.BLACK}${time}${colors.RESET} ${text}`
+      text = `${time}${colors.RESET} ${text}`
     }
 
-    console.info(text)
+    if (!options?.supressLog) {
+      console.info(text)
+    }
   } catch (err) {
     console.error(`${colors.RED}Error in logger:`, err, colors.RESET)
   }
 
   return text
+}
+
+export function logError(message: string): string {
+  return logger(Text("RED", message), { supressLog: true })
 }

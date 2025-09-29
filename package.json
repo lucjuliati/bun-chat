@@ -6,16 +6,18 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/server.ts",
-    "server": "bun src/server.ts",
-    "client": "bun src/client.ts"
+    "server": "bun src/server/index.ts",
+    "client": "bun src/client/index.ts"
   },
   "devDependencies": {
+    "@types/blessed": "^0.1.25",
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
+    "blessed": "^0.1.81",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "zod": "^4.1.11"

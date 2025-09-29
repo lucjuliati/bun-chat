@@ -1,7 +1,7 @@
 import type { Database } from "sqlite"
-import type { SocketEvent, WebSocketInstance } from "../types"
+import type { SocketEvent, WebSocketInstance } from "@/types"
 import logger, { Text } from "./logger"
-import { Topic } from "../types"
+import { Topic } from "@/types"
 
 type WSClient = Bun.ServerWebSocket<WebSocketInstance>
 
@@ -66,13 +66,15 @@ export class TopicController {
   }
 
   public async publish(
-    topic: string,
+    topic: string | undefined,
     client: WSClient,
     server: Bun.Server,
     event: SocketEvent
   ) {
     try {
-      if (client.isSubscribed(topic)) {
+      if (!topic) return
+
+      if (client?.isSubscribed(topic!)) {
         const message = logger([
           Text("YELLOW", `[${topic}]`),
           Text("RESET", `${client.data.id}: ${event.message}`)
@@ -85,7 +87,7 @@ export class TopicController {
           created_at: new Date().getTime()
         }
 
-        server.publish(topic, JSON.stringify(chatMessage))
+        server.publish(topic!, JSON.stringify(chatMessage))
 
         await this.db.run(`INSERT INTO messages (message, user, created_at, topic) VALUES (?, ?, ?, ?)`, [
           event.message,
