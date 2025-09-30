@@ -13,8 +13,10 @@ export class TopicController {
     this.db = db
   }
 
-  public async subscribe(topic: string, client: WSClient) {
+  public async subscribe(topic: string | undefined, client: WSClient) {
     try {
+      if (!topic) throw new Error("No topic provided")
+
       let topicData = this.topics.get(topic)
 
       if (!topicData) {

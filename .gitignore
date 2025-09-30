@@ -2,7 +2,7 @@
 node_modules
 
 .vscode
-
+build/*
 # output
 out
 dist

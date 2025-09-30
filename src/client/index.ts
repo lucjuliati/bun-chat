@@ -48,10 +48,6 @@ ws.onmessage = ({ data }) => {
 
     ui.write(messages)
   }
-
-  if (event.name === "on_leave") {
-    console.log(event)
-  }
 }
 
 ws.onclose = (data) => {

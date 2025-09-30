@@ -41,7 +41,8 @@ export class UI {
       const message = text.trim()
       if (!message) return
 
-      this.history.push(message)
+      this.history = Array.from(new Set([...this.history, message]))
+      this.historyIndex = -1
 
       this.input!.clearValue()
       this.screen.render()
@@ -153,24 +154,37 @@ export class UI {
   }
 
   joinRoom(args?: string[]) {
-    let topic: string
+    try {
+      let topic: string
 
-    if (!args) {
-      this.write(logError("No room name provided!"))
-      return
+      if (!args) {
+        this.write(logError("No room name provided!"))
+        return
+      }
+
+      topic = args[0]?.trim() ?? ""
+
+      if (this.connection.topic === topic) {
+        return
+      }
+
+      if (topic.length === 0) {
+        this.write(logError("No room name provided"))
+      } else {
+        this.ws.send(JSON.stringify({ action: "subscribe", topic }))
+      }
+    } catch {
+      this.write(logError("Error while joining room"))
     }
+  }
 
-    topic = args[0]?.trim() ?? ""
-
-    if (this.connection.topic === topic) {
-      return
-    }
-
-    if (topic.length === 0) {
-      this.write(logError("No room name provided"))
-    } else {
-      this.ws.send(JSON.stringify({ action: "subscribe", topic }))
-
+  leaveRoom() {
+    if (this.connection.topic && this.connection.isConnected) {
+      this.ws.send(JSON.stringify({ action: "unsubscribe", topic: this.connection.topic }))
+      this.connection.topic = undefined
+      this.connection.hash = undefined
+      this.updateStatus(false)
+      this.clear()
     }
   }
 
@@ -181,7 +195,7 @@ export class UI {
     } else if (command === "join") {
       this.joinRoom(args)
     } else if (command === "leave") {
-      this.write("You cannot leave. you're trapped ")
+      this.leaveRoom()
     } else if (command === "quit") {
       this.ws.close()
       process.exit(0)
