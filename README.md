@@ -1,24 +1,29 @@
 # Bun Chat
 
-Simple WebSockets based terminal chat application.
+Simple WebSockets-based terminal chat application.
 
-### Requirements
- - Bun: ^1.2.22
+## Requirements
 
-### Installation
+*   [Bun](https://bun.sh/) (`^1.2.22` or newer)
 
-```bash
-bun install
-```
+## Getting Started
 
-### Running the project
+1.  **Install dependencies:**
 
-To start the server:
-```bash
-bun run server
-```
+    ```bash
+    bun install
+    ```
 
-To spawn a client:
-```bash
-bun run client
-```
+2.  **Run the application:**
+
+    First, start the chat server in one terminal window:
+
+    ```bash
+    bun run server
+    ```
+
+    Then, open one or more new terminal windows to spawn clients:
+
+    ```bash
+    bun run client
+    ```
