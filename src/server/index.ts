@@ -1,7 +1,7 @@
-import database from "../../lib/database"
-import logger, { Text } from "../../lib/logger"
-import { TopicController } from "../../lib/topic-controller"
-import type { SocketEvent, WebSocketInstance } from "../../types"
+import database from "@/lib/database"
+import logger, { Text } from "@/lib/logger"
+import { TopicController } from "@/src/server/topic-controller"
+import type { SocketEvent, WebSocketInstance } from "@/types"
 import * as z from "zod"
 
 const db = await database.start()
@@ -25,7 +25,7 @@ const server = Bun.serve<WebSocketInstance, {}>({
         event = JSON.parse(message.toString())
         z.object({
           topic: z.string().optional(),
-          action: z.enum(["subscribe", "unsubscribe", "list_topics", "publish"]),
+          action: z.enum(["subscribe", "unsubscribe", "list_rooms", "publish"]),
           message: z.string().optional(),
         }).parse(event)
 
@@ -48,8 +48,8 @@ const server = Bun.serve<WebSocketInstance, {}>({
           topicController.unsubscribe(event.topic, ws)
           break
         }
-        case "list_topics": {
-          await topicController.listTopics(ws)
+        case "list_rooms": {
+          await topicController.listRooms(ws)
           break
         }
         case "publish": {
@@ -66,7 +66,7 @@ const server = Bun.serve<WebSocketInstance, {}>({
         Text("RESET", `${ws.data.id} connected`)
       ])
     },
-    close(ws, code, message) {
+    close(ws) {
       topicController.close(ws)
     }
   },

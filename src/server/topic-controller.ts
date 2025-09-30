@@ -1,6 +1,6 @@
-import type { Database } from "sqlite"
 import type { SocketEvent, WebSocketInstance } from "@/types"
-import logger, { Text } from "./logger"
+import logger, { Text } from "@/lib/logger"
+import type { Database } from "sqlite"
 import { Topic } from "@/types"
 
 type WSClient = Bun.ServerWebSocket<WebSocketInstance>
@@ -36,10 +36,17 @@ export class TopicController {
       client.subscribe(topic)
       client.data.topics.add(topic)
 
+      const messages = await this.db.all(`SELECT * FROM messages WHERE topic = ? ORDER BY created_at DESC LIMIT 20`, [topic])
+
       logger([
         Text("GREEN", `${client.data.id}`),
         Text("RESET", `subscribed to: ${topic}`)
       ])
+
+      client.send(JSON.stringify({
+        name: "on_join",
+        data: { topic, hash: client.data.id, messages }
+      }))
     } catch (e) {
       console.error(e)
     }
@@ -75,10 +82,10 @@ export class TopicController {
       if (!topic) return
 
       if (client?.isSubscribed(topic!)) {
-        const message = logger([
-          Text("YELLOW", `[${topic}]`),
-          Text("RESET", `${client.data.id}: ${event.message}`)
-        ], { timestamp: true })
+        const message = logger(Text
+          ("RESET", `${client.data.id}: ${event.message}`),
+          { timestamp: true }
+        )
 
         const chatMessage = {
           user: client.data.id,
@@ -87,7 +94,10 @@ export class TopicController {
           created_at: new Date().getTime()
         }
 
-        server.publish(topic!, JSON.stringify(chatMessage))
+        server.publish(topic!, JSON.stringify({
+          name: "message",
+          data: chatMessage
+        }))
 
         await this.db.run(`INSERT INTO messages (message, user, created_at, topic) VALUES (?, ?, ?, ?)`, [
           event.message,
@@ -103,11 +113,11 @@ export class TopicController {
     }
   }
 
-  public async listTopics(client: WSClient) {
+  public async listRooms(client: WSClient) {
     try {
       const topics = await this.db.all(`SELECT * FROM topics`)
       client.send(JSON.stringify({
-        name: "list_topics",
+        name: "list_rooms",
         data: topics
       }))
     } catch (err) {

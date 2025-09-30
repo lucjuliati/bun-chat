@@ -45,7 +45,7 @@ export default function logger(
     if (options?.timestamp) {
       const date = new Date()
       const time = date.toLocaleTimeString().slice(0, 5)
-      text = `${time}${colors.RESET} ${text}`
+      text = `[${time}]${colors.RESET} ${text}`
     }
 
     if (!options?.supressLog) {

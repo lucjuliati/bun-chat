@@ -1,10 +1,13 @@
-import logger, { logError, Text } from "@/lib/logger"
+import { colors, logError } from "@/lib/logger"
 import type { Connection, Topic } from "@/types"
 import blessed, { Widgets } from "blessed"
+import styles from "./tui-style"
 
 export class UI {
   ws: WebSocket
   connection: Connection
+  history: string[] = []
+  historyIndex: number = -1
   screen: Widgets.Screen = blessed.screen({
     smartCSR: true,
     title: "Bun Chat"
@@ -23,58 +26,10 @@ export class UI {
     this.ws = ws
     this.connection = connection
 
-    this.messageBox = blessed.box({
-      top: 0,
-      left: 0,
-      width: "80%",
-      height: "90%",
-      content: "Type something below...",
-      tags: true,
-      border: { type: "bg" },
-      style: {
-        fg: "white",
-        border: { fg: "cyan" }
-      }
-    })
-
-    this.statusBox = blessed.box({
-      top: 0,
-      right: 0,
-      width: "20%",
-      height: "40%",
-      padding: { left: 1 },
-      label: "Status",
-      border: { type: "bg", },
-      style: { fg: "red", },
-      content: "Disconnected"
-    })
-
-    const commandsBox = blessed.box({
-      top: "45%",
-      right: 0,
-      width: "20%",
-      height: "60%",
-      label: "Commands",
-      padding: { left: 1 },
-      border: { type: "bg" },
-      style: { fg: "white", },
-      content: "/list\n/create\n/join\n/clear\n/quit"
-    })
-
-    this.input = blessed.textbox({
-      bottom: 0,
-      left: 0,
-      width: "80%",
-      height: 3,
-      keys: true,
-      mouse: true,
-      inputOnFocus: true,
-      border: { type: "line" },
-      style: {
-        fg: "white",
-        border: { fg: "white" }
-      }
-    })
+    this.messageBox = blessed.box(styles.message)
+    this.statusBox = blessed.box(styles.status)
+    const commandsBox = blessed.box(styles.commands)
+    this.input = blessed.textbox(styles.input)
 
     this.screen.append(this.messageBox)
     this.screen.append(this.statusBox)
@@ -85,6 +40,8 @@ export class UI {
     this.input.on("submit", (text: string) => {
       const message = text.trim()
       if (!message) return
+
+      this.history.push(message)
 
       this.input!.clearValue()
       this.screen.render()
@@ -108,6 +65,37 @@ export class UI {
       }))
     })
 
+    this.input.key("up", () => {
+      if (this.history.length === 0) return
+      if (this.historyIndex === -1) {
+        this.historyIndex = this.history.length - 1
+      } else if (this.historyIndex > 0) {
+        this.historyIndex--
+      }
+
+      if (this.history[this.historyIndex]) {
+        this.input!.setValue(this.history[this.historyIndex]!)
+        this.screen.render()
+      }
+    })
+
+    this.input.key("down", () => {
+      if (this.history.length === 0) return
+      if (this.historyIndex === -1) return
+
+      if (this.historyIndex < this.history.length - 1) {
+        this.historyIndex++
+        if (this.history[this.historyIndex]) {
+          this.input!.setValue(this.history[this.historyIndex]!)
+        }
+      } else {
+        this.historyIndex = -1
+        this.input!.clearValue()
+      }
+      this.screen.render()
+    })
+
+
     this.screen.key(["escape", "q"], () => {
       ws.close()
 
@@ -118,17 +106,18 @@ export class UI {
   }
 
   updateStatus = (connected: boolean) => {
-    let status = "Disconnected"
     if (connected) {
-      this.statusBox!.style.fg = "green"
-      this.statusBox!.setContent("Connected")
+      let text = "{green-fg}Connected\n"
+      text += `{white-fg}Room: ${this.connection.topic}{/}\n`
+      text += `{white-fg}Hash: ${this.connection.hash}{/}\n`
+      this.statusBox?.setContent(text)
     } else {
-      this.statusBox!.style.fg = "red"
-      this.statusBox!.setContent("Disconnected")
+      this.statusBox?.setContent("{red-fg}Disconnected")
     }
 
     this.connection.isConnected = connected
     this.screen.render()
+    this.statusBox?.render()
   }
 
   clear = () => {
@@ -151,36 +140,48 @@ export class UI {
   }
 
   listRooms(data: Topic[]) {
-    let rooms = ""
-    data.forEach((topic) => {
-      rooms += `${topic.name}\n`
-    })
+    let rooms = `Rooms:\n${colors.YELLOW}`
+    if (data.length > 0) {
+      rooms += data.map(topic => topic.name ?? "").join(", ")
+      rooms += (colors.RESET + "\n")
 
-    this.clear()
-    this.write(`${rooms}\nJoin a room with /join <name>`)
+      this.clear()
+      this.write(`${rooms}Join a room with /join <name>`)
+    } else {
+      this.write(logError("No rooms found!"))
+    }
+  }
+
+  joinRoom(args?: string[]) {
+    let topic: string
+
+    if (!args) {
+      this.write(logError("No room name provided!"))
+      return
+    }
+
+    topic = args[0]?.trim() ?? ""
+
+    if (this.connection.topic === topic) {
+      return
+    }
+
+    if (topic.length === 0) {
+      this.write(logError("No room name provided"))
+    } else {
+      this.ws.send(JSON.stringify({ action: "subscribe", topic }))
+
+    }
   }
 
   handleCommand = async (command: string, args?: string[]) => {
-    if (command === "list") {
-      this.ws.send(JSON.stringify({ action: "list_topics" }))
+    if (command === "rooms") {
+      this.ws.send(JSON.stringify({ action: "list_rooms" }))
       return
-    } else if (command === "create") {
-      // await createRoomPrompt()
     } else if (command === "join") {
-      if (args?.length === 0) {
-        this.write(logError("No room name provided"))
-      } else {
-        const topic = args?.[0]
-        this.ws.send(JSON.stringify({ action: "subscribe", topic }))
-        this.connection.topic = topic
-        this.connection.isConnected = true
-        this.write(
-          logger([
-            Text("GREEN", "Connected to"),
-            Text("RESET", topic ?? "")
-          ], { supressLog: true })
-        )
-      }
+      this.joinRoom(args)
+    } else if (command === "leave") {
+      this.write("You cannot leave. you're trapped ")
     } else if (command === "quit") {
       this.ws.close()
       process.exit(0)

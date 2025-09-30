@@ -5,7 +5,9 @@ export type WebSocketInstance = {
 
 export type Connection = {
   isConnected: boolean
-  topic: string | undefined
+  topic?: string
+  hash?: string
+  history?: ChatMessage[]
 }
 export class Topic {
   id?: string
@@ -22,7 +24,7 @@ export class Topic {
 }
 
 export type SocketEvent = {
-  action: "subscribe" | "unsubscribe" | "list_topics" | "publish"
+  action: "subscribe" | "unsubscribe" | "list_rooms" | "publish"
   topic: string
   message?: string
 }

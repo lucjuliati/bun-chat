@@ -13,13 +13,13 @@ async function start() {
 
   await db.exec(`
     CREATE TABLE IF NOT EXISTS topics (
-      name TEXT PRIMARY KEY UNIQUE,
+      name TEXT PRIMARY KEY UNIQUE CHECK(name <> ''),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      message TEXT NOT NULL,
+      message TEXT NOT NULL CHECK(message <> ''),
       user TEXT NOT NULL,
       created_at TEXT NOT NULL,
       topic TEXT NOT NULL,
