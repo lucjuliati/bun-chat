@@ -10,6 +10,7 @@ const db = await database.start()
 const topicController = new TopicController(db)
 
 const server = Bun.serve<WebSocketInstance, {}>({
+  port: 4000,
   async fetch(req, server) {
     const id = crypto.randomUUID().slice(0, 13)
     const data = { id, topics: new Set() }
@@ -45,7 +46,6 @@ const server = Bun.serve<WebSocketInstance, {}>({
           action: z.enum(["subscribe", "unsubscribe", "list_rooms", "publish"]),
           message: z.string().optional(),
         }).parse(event)
-
       } catch (e) {
         console.log(`Received non-JSON message: ${message}`)
 
@@ -87,7 +87,6 @@ const server = Bun.serve<WebSocketInstance, {}>({
       topicController.close(ws)
     }
   },
-  port: 4000,
 })
 
 console.log(`Listening on :${server.port}`)

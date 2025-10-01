@@ -47,7 +47,17 @@ export class TopicController {
 
       client.send(JSON.stringify({
         name: "on_join",
-        data: { topic, hash: client.data.id, messages }
+        data: {
+          topic,
+          hash: client.data.id,
+          clients: topicData?.clients.map(client => client.data.id) ?? [],
+          messages
+        }
+      }))
+
+      client.publish(topic, JSON.stringify({
+        name: "on_user_join",
+        data: { topic, hash: client.data.id }
       }))
     } catch (e) {
       console.error(e)
@@ -69,6 +79,11 @@ export class TopicController {
         Text("RED", `${client.data.id}`),
         Text("RESET", `unsubscribed from ${topic}`)
       ])
+
+      client.publish(topic, JSON.stringify({
+        name: "on_user_join",
+        data: { topic, hash: client.data.id }
+      }))
     } catch (err) {
       console.error(err)
     }
@@ -120,7 +135,7 @@ export class TopicController {
       const topics = await this.db.all(`SELECT * FROM topics`)
       client.send(JSON.stringify({
         name: "list_rooms",
-        data: topics
+        data: { topics }
       }))
     } catch (err) {
       console.error(err)

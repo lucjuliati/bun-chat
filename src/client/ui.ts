@@ -1,20 +1,20 @@
 import { colors, logError } from "@/lib/logger"
-import type { Connection, Topic } from "@/types"
+import type { Connection, Topic, WebSocketAction } from "@/types"
 import blessed, { Widgets } from "blessed"
-import styles from "./tui-style"
 
 export class UI {
-  ws: WebSocket
-  connection: Connection
-  history: string[] = []
-  historyIndex: number = -1
-  screen: Widgets.Screen = blessed.screen({
+  private connection: Connection
+  private sendAction: (action: WebSocketAction) => void
+  private history: string[] = []
+  private historyIndex: number = -1
+  
+  private screen: Widgets.Screen = blessed.screen({
     smartCSR: true,
     title: "Bun Chat"
   })
-  statusBox: Widgets.BoxElement | undefined
-  messageBox: Widgets.BoxElement | undefined
-  input: Widgets.TextboxElement | undefined
+  private statusBox: Widgets.BoxElement | undefined
+  private messageBox: Widgets.BoxElement | undefined
+  private input: Widgets.TextboxElement | undefined
 
   render() {
     process.stdout.clearLine(0)
@@ -22,9 +22,9 @@ export class UI {
     this.screen.render()
   }
 
-  constructor(ws: WebSocket, connection: Connection) {
-    this.ws = ws
+  constructor(connection: Connection, sendAction: (action: WebSocketAction) => void) {
     this.connection = connection
+    this.sendAction = sendAction
 
     this.messageBox = blessed.box(styles.message)
     this.statusBox = blessed.box(styles.status)
@@ -59,11 +59,7 @@ export class UI {
         return
       }
 
-      this.ws.send(JSON.stringify({
-        action: "publish",
-        topic: this.connection.topic,
-        message
-      }))
+      this.sendAction({ action: "publish", topic: this.connection.topic, message })
     })
 
     this.input.key("up", () => {
@@ -98,11 +94,7 @@ export class UI {
 
 
     this.screen.key(["escape", "q"], () => {
-      ws.close()
-
-      connection.isConnected = false
-      connection.topic = undefined
-      process.exit(0)
+      this.sendAction({ action: "quit" })
     })
   }
 
@@ -130,11 +122,11 @@ export class UI {
     message = message.trim()
     if (!message) return
 
-    const box = this.messageBox!
-    const current = box.getContent() ?? ""
+    const current = this.messageBox!.getContent() ?? ""
 
     const newContent = current ? `${current}\n${message}` : message
-    box.setContent(newContent)
+    this.messageBox!.setContent(newContent)
+    this.messageBox?.setScrollPerc(100)
 
     this.screen.render()
     this.input!.clearValue()
@@ -171,7 +163,7 @@ export class UI {
       if (topic.length === 0) {
         this.write(logError("No room name provided"))
       } else {
-        this.ws.send(JSON.stringify({ action: "subscribe", topic }))
+        this.sendAction({ action: "subscribe", topic })
       }
     } catch {
       this.write(logError("Error while joining room"))
@@ -180,7 +172,7 @@ export class UI {
 
   leaveRoom() {
     if (this.connection.topic && this.connection.isConnected) {
-      this.ws.send(JSON.stringify({ action: "unsubscribe", topic: this.connection.topic }))
+      this.sendAction({ action: "unsubscribe", topic: this.connection.topic })
       this.connection.topic = undefined
       this.connection.hash = undefined
       this.updateStatus(false)
@@ -190,19 +182,80 @@ export class UI {
 
   handleCommand = async (command: string, args?: string[]) => {
     if (command === "rooms") {
-      this.ws.send(JSON.stringify({ action: "list_rooms" }))
+      this.sendAction({ action: "list_rooms" })
       return
     } else if (command === "join") {
       this.joinRoom(args)
-    } else if (command === "leave") {
+    } else if (command === "leave" || command === "exit") {
       this.leaveRoom()
     } else if (command === "quit") {
-      this.ws.close()
-      process.exit(0)
+      this.sendAction({ action: "quit" })
     } else if (command === "clear") {
       this.clear()
     } else {
       this.write(logError(`Unknown command: ${command}`))
     }
+  }
+}
+
+type Styles = {
+  "message": Widgets.BoxOptions
+  "input": Widgets.BoxOptions
+  "status": Widgets.BoxOptions
+  "commands": Widgets.BoxOptions
+}
+
+const styles: Styles = {
+  message: {
+    top: 0,
+    left: 0,
+    width: "75%",
+    height: "90%",
+    scrollable: true,
+    alwaysScroll: true,
+    content: "Use /rooms to list available rooms or /join to join/create a room",
+    tags: true,
+    border: { type: "bg" },
+    style: {
+      fg: "white",
+      border: { fg: "cyan" }
+    }
+  },
+  input: {
+    bottom: 0,
+    left: 0,
+    width: "75%",
+    height: 3,
+    keys: true,
+    mouse: true,
+    inputOnFocus: true,
+    border: { type: "line" },
+    style: {
+      fg: "white",
+      border: { fg: "white" }
+    }
+  },
+  status: {
+    top: 0,
+    right: 0,
+    width: "25%",
+    height: "40%",
+    padding: { left: 1 },
+    label: "Status",
+    border: { type: "bg", },
+    tags: true,
+    style: { fg: "red", },
+    content: "Disconnected"
+  },
+  commands: {
+    top: "45%",
+    right: 0,
+    width: "25%",
+    height: "60%",
+    label: "Commands",
+    padding: { left: 1 },
+    border: { type: "bg" },
+    style: { fg: "white", },
+    content: "/rooms\n/join\n/leave\n/clear\n/quit"
   }
 }

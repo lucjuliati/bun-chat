@@ -3,6 +3,12 @@ export type WebSocketInstance = {
   topics: Set<string>
 }
 
+export type WebSocketAction = {
+  action: "subscribe" | "unsubscribe" | "list_rooms" | "publish" | "quit"
+  topic?: string
+  message?: string
+}
+
 export type Connection = {
   isConnected: boolean
   topic?: string
@@ -10,8 +16,8 @@ export type Connection = {
   history?: ChatMessage[]
 }
 export class Topic {
-  id?: string
-  name?: string
+  id: string
+  name: string
   messages: string[] = []
   clients: Bun.ServerWebSocket<WebSocketInstance>[] = []
 

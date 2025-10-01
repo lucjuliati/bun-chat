@@ -26,7 +26,22 @@ export function Text(color: ColorKey, message: string): string {
 
 type Options = {
   timestamp?: boolean
-  supressLog?: boolean
+}
+
+export function color(messages: string[] | string): string {
+  let text = ""
+
+  try {
+    if (!Array.isArray(messages)) {
+      messages = [messages]
+    }
+
+    text = messages.join(" ")
+  } catch (err) {
+    console.error(err)
+  }
+
+  return text
 }
 
 export default function logger(
@@ -48,16 +63,14 @@ export default function logger(
       text = `[${time}]${colors.RESET} ${text}`
     }
 
-    if (!options?.supressLog) {
-      console.info(text)
-    }
+    console.info(text)
   } catch (err) {
-    console.error(`${colors.RED}Error in logger:`, err, colors.RESET)
+    console.error(err)
   }
 
   return text
 }
 
 export function logError(message: string): string {
-  return logger(Text("RED", message), { supressLog: true })
+  return color(Text("RED", message))
 }
