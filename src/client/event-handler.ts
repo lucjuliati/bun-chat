@@ -1,17 +1,17 @@
-import type { Connection, Topic } from "@/types"
+import type { Connection, Room } from "@/types"
 import { color, Text } from "@/lib/logger"
 import { UI } from "@/src/client/ui"
 
 export type EventType = {
   "on_join": {
-    topic: string
+    room: string
     hash: string
     messages?: { created_at: string, user: string, message: string }[]
   }
   "message": { message: string }
-  "list_rooms": { topics: unknown[] }
-  "on_user_join": { topic: string, hash: string }
-  "on_user_leave": { topic: string, hash: string }
+  "list_rooms": { rooms: unknown[] }
+  "on_user_join": { room: string, hash: string }
+  "on_user_leave": { room: string, hash: string }
 }
 
 export type EventPayload<K extends keyof EventType = keyof EventType> = {
@@ -30,17 +30,21 @@ export class EventHandler {
   }
 
   public handle<E extends keyof EventType>(event: EventPayload<E>) {
-    const handlerMap: {
-      [K in keyof EventType]: (data: EventType[K]) => void
-    } = {
-      message: this.message.bind(this),
-      list_rooms: this.list_rooms.bind(this),
-      on_join: this.on_join.bind(this),
-      on_user_join: this.on_user_join.bind(this),
-      on_user_leave: this.on_user_leave.bind(this),
-    }
+    try {
+      const handlerMap: {
+        [K in keyof EventType]: (data: EventType[K]) => void
+      } = {
+        message: this.message.bind(this),
+        list_rooms: this.list_rooms.bind(this),
+        on_join: this.on_join.bind(this),
+        on_user_join: this.on_user_join.bind(this),
+        on_user_leave: this.on_user_leave.bind(this),
+      }
 
-    handlerMap[event.name](event.data)
+      handlerMap[event.name](event.data)
+    } catch (err) {
+      throw err
+    }
   }
 
   private message(data: EventType["message"]) {
@@ -48,11 +52,11 @@ export class EventHandler {
   }
 
   private list_rooms(data: EventType["list_rooms"]) {
-    this.ui.listRooms(data.topics as Topic[])
+    this.ui.listRooms(data.rooms as Room[])
   }
 
   private on_join(data: EventType["on_join"]) {
-    this.connection.topic = data.topic
+    this.connection.room = data.room
     this.connection.hash = data.hash
     this.connection.isConnected = true
 
@@ -62,7 +66,7 @@ export class EventHandler {
     this.ui.write(
       color([
         Text("GREEN", "Connected to "),
-        Text("RESET", data.topic ?? "")
+        Text("RESET", data.room ?? "")
       ])
     )
 
@@ -78,12 +82,12 @@ export class EventHandler {
   }
 
   private on_user_join(data: EventType["on_user_join"]) {
-    if (data.topic !== this.connection.topic) return
+    if (data.room !== this.connection.room) return
     this.ui.write(color(Text("GREEN", `${data.hash} joined\n`)))
   }
 
   private on_user_leave(data: EventType["on_user_leave"]) {
-    if (data.topic !== this.connection.topic) return
+    if (data.room !== this.connection.room) return
     this.ui.write(color(Text("RED", `${data.hash} left\n`)))
   }
 }

@@ -1,21 +1,23 @@
 export type WebSocketInstance = {
   id: string
-  topics: Set<string>
+  rooms: Set<string>
 }
 
 export type WebSocketAction = {
   action: "subscribe" | "unsubscribe" | "list_rooms" | "publish" | "quit"
-  topic?: string
+  room?: string
   message?: string
 }
 
+export type WSClient = Bun.ServerWebSocket<WebSocketInstance>
+
 export type Connection = {
   isConnected: boolean
-  topic?: string
+  room?: string
   hash?: string
   history?: ChatMessage[]
 }
-export class Topic {
+export class Room {
   id: string
   name: string
   messages: string[] = []
@@ -31,7 +33,7 @@ export class Topic {
 
 export type SocketEvent = {
   action: "subscribe" | "unsubscribe" | "list_rooms" | "publish"
-  topic: string
+  room: string
   message?: string
 }
 
@@ -43,6 +45,6 @@ export type ServerEvent = {
 export type ChatMessage = {
   user: string
   message: string
-  topic: string
+  room: string
   created_at: number
 }

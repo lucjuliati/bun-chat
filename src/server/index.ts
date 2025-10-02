@@ -1,19 +1,18 @@
 import database from "@/lib/database"
 import logger, { Text } from "@/lib/logger"
-import { TopicController } from "@/src/server/topic-controller"
-import type { SocketEvent, WebSocketInstance } from "@/types"
+import type { WebSocketInstance } from "@/types"
+import { EventHandler } from "./event-handler"
 import { contentType } from "@/src/utils"
 import { file } from "bun"
-import * as z from "zod"
 
 const db = await database.start()
-const topicController = new TopicController(db)
+const eventHandler = new EventHandler(db)
 
 const server = Bun.serve<WebSocketInstance, {}>({
   port: 4000,
   async fetch(req, server) {
     const id = crypto.randomUUID().slice(0, 13)
-    const data = { id, topics: new Set() }
+    const data = { id, rooms: new Set() }
     const upgrade = server.upgrade(req, { data })
 
     if (upgrade) return
@@ -37,45 +36,7 @@ const server = Bun.serve<WebSocketInstance, {}>({
   },
   websocket: {
     async message(ws, message) {
-      let event: SocketEvent
-
-      try {
-        event = JSON.parse(message.toString())
-        z.object({
-          topic: z.string().optional(),
-          action: z.enum(["subscribe", "unsubscribe", "list_rooms", "publish"]),
-          message: z.string().optional(),
-        }).parse(event)
-      } catch (e) {
-        console.log(`Received non-JSON message: ${message}`)
-
-        if (e instanceof z.ZodError) {
-          ws.send(JSON.stringify({ error: "Invalid message format" }))
-        }
-
-        return
-      }
-
-      switch (event.action) {
-        case "subscribe": {
-          await topicController.subscribe(event.topic, ws)
-          break
-        }
-        case "unsubscribe": {
-          topicController.unsubscribe(event.topic, ws)
-          break
-        }
-        case "list_rooms": {
-          await topicController.listRooms(ws)
-          break
-        }
-        case "publish": {
-          topicController.publish(event.topic, ws, server, event)
-          break
-        }
-        default:
-          break
-      }
+      eventHandler.handle(server, ws, message.toString())
     },
     open(ws) {
       logger([
@@ -84,7 +45,7 @@ const server = Bun.serve<WebSocketInstance, {}>({
       ])
     },
     close(ws) {
-      topicController.close(ws)
+      eventHandler.close(ws)
     }
   },
 })

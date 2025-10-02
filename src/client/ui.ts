@@ -1,5 +1,5 @@
 import { colors, logError } from "@/lib/logger"
-import type { Connection, Topic, WebSocketAction } from "@/types"
+import type { Connection, Room, WebSocketAction } from "@/types"
 import blessed, { Widgets } from "blessed"
 
 export class UI {
@@ -7,7 +7,7 @@ export class UI {
   private sendAction: (action: WebSocketAction) => void
   private history: string[] = []
   private historyIndex: number = -1
-  
+
   private screen: Widgets.Screen = blessed.screen({
     smartCSR: true,
     title: "Bun Chat"
@@ -54,12 +54,12 @@ export class UI {
         return
       }
 
-      if (!this.connection.isConnected || !this.connection.topic) {
+      if (!this.connection.isConnected || !this.connection.room) {
         this.write(logError("You are not connected to a room!"))
         return
       }
 
-      this.sendAction({ action: "publish", topic: this.connection.topic, message })
+      this.sendAction({ action: "publish", room: this.connection.room, message })
     })
 
     this.input.key("up", () => {
@@ -101,7 +101,7 @@ export class UI {
   updateStatus = (connected: boolean) => {
     if (connected) {
       let text = "{green-fg}Connected\n"
-      text += `{white-fg}Room: ${this.connection.topic}{/}\n`
+      text += `{white-fg}Room: ${this.connection.room}{/}\n`
       text += `{white-fg}Hash: ${this.connection.hash}{/}\n`
       this.statusBox?.setContent(text)
     } else {
@@ -132,10 +132,10 @@ export class UI {
     this.input!.clearValue()
   }
 
-  listRooms(data: Topic[]) {
+  listRooms(data: Room[]) {
     let rooms = `Rooms:\n${colors.YELLOW}`
     if (data.length > 0) {
-      rooms += data.map(topic => topic.name ?? "").join(", ")
+      rooms += data.map(room => room.name ?? "").join(", ")
       rooms += (colors.RESET + "\n")
 
       this.clear()
@@ -147,23 +147,23 @@ export class UI {
 
   joinRoom(args?: string[]) {
     try {
-      let topic: string
+      let room: string
 
       if (!args) {
         this.write(logError("No room name provided!"))
         return
       }
 
-      topic = args[0]?.trim() ?? ""
+      room = args[0]?.trim() ?? ""
 
-      if (this.connection.topic === topic) {
+      if (this.connection.room === room) {
         return
       }
 
-      if (topic.length === 0) {
+      if (room.length === 0) {
         this.write(logError("No room name provided"))
       } else {
-        this.sendAction({ action: "subscribe", topic })
+        this.sendAction({ action: "subscribe", room })
       }
     } catch {
       this.write(logError("Error while joining room"))
@@ -171,9 +171,9 @@ export class UI {
   }
 
   leaveRoom() {
-    if (this.connection.topic && this.connection.isConnected) {
-      this.sendAction({ action: "unsubscribe", topic: this.connection.topic })
-      this.connection.topic = undefined
+    if (this.connection.room && this.connection.isConnected) {
+      this.sendAction({ action: "unsubscribe", room: this.connection.room })
+      this.connection.room = undefined
       this.connection.hash = undefined
       this.updateStatus(false)
       this.clear()

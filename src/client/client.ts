@@ -9,7 +9,7 @@ export class Client {
   private eventHandler: EventHandler
   private connection: Connection = {
     isConnected: false,
-    topic: undefined,
+    room: undefined,
   }
 
   constructor(wsUrl: string) {
@@ -51,7 +51,7 @@ export class Client {
         this.ui.write(logError(`Connection error: ${event.reason}`))
       }
       this.ui.updateStatus(false)
-      this.shutdown(1)
+      this.shutdown()
     }
   }
 

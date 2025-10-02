@@ -6,13 +6,13 @@ const messageInput = document.getElementById("message-input")
 const sendBtn = document.getElementById("send-btn")
 
 let ws
-let topic
+let room
 
 ws = new WebSocket(`ws://localhost:4000`)
 
 ws.onopen = () => {
   // console.log("Connected to WebSocket server")
-  // const event = { action: "subscribe", topic: "1" }
+  // const event = { action: "subscribe", room: "1" }
   // ws.send(JSON.stringify(event))
 }
 
@@ -38,7 +38,7 @@ ws.onerror = (error) => {
 function sendMessage() {
   const message = messageInput.value.trim()
   if (message && ws && ws.readyState === WebSocket.OPEN) {
-    const event = { action: "publish", topic, message }
+    const event = { action: "publish", room, message }
     ws.send(JSON.stringify(event))
     messageInput.value = ""
   }

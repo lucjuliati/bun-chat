@@ -12,7 +12,7 @@ async function start() {
   })
 
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS topics (
+    CREATE TABLE IF NOT EXISTS rooms (
       name TEXT PRIMARY KEY UNIQUE CHECK(name <> ''),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -22,8 +22,8 @@ async function start() {
       message TEXT NOT NULL CHECK(message <> ''),
       user TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      topic TEXT NOT NULL,
-      FOREIGN KEY (topic) REFERENCES topics(name)
+      room TEXT NOT NULL,
+      FOREIGN KEY (room) REFERENCES rooms(name)
     );
   `)
 
