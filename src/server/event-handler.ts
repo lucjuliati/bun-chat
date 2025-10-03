@@ -6,8 +6,8 @@ import * as z from "zod"
 export type EventType = {
   "subscribe": { room: string, ws: WSClient }
   "unsubscribe": { room: string, ws: WSClient }
-  "list_rooms": { ws: WSClient }
   "publish": { event: SocketEvent, ws: WSClient, server: Bun.Server }
+  "list_rooms": { ws: WSClient }
 }
 
 export type EventPayload<K extends keyof EventType = keyof EventType> = {
@@ -65,12 +65,12 @@ export class EventHandler {
     this.roomController.unsubscribe(room, ws)
   }
 
-  private async list_rooms({ ws }: EventType["list_rooms"]) {
-    await this.roomController.listRooms(ws)
-  }
-
   private publish({ event, ws, server, }: EventType["publish"]) {
     this.roomController.publish(event, ws, server)
+  }
+
+  private async list_rooms({ ws }: EventType["list_rooms"]) {
+    await this.roomController.listRooms(ws)
   }
 
   public close(client: WSClient) {

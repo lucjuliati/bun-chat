@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-  <title>Bun Chat</title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="/style.css" />
@@ -11,28 +10,41 @@
 <body>
   <div id="chat-container">
     <div id="chat-header">
-      header
     </div>
     <div style="flex: 1; display: flex;">
-      <div id="chat-messages"></div>
+      <div id="chat-window"></div>
       <div id="chat-menu">
-        <fieldset>
+        <fieldset class="status-box">
           <legend>Status</legend>
           <div>
+            <p style="color: tomato;">Disconnected</p>
+            <p>Room: None</p>
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset class="command-box">
           <legend>Commands</legend>
           <div>
+            <p>/rooms</p>
+            <p>/join</p>
+            <p>/clear</p>
+            <p>/leave</p>
+            <p>/quit</p>
           </div>
         </fieldset>
       </div>
     </div>
     <div id="chat-control">
-      <input type="text" placeholder="Type here..." />
+      <input type="text" id="terminal-input" value="" placeholder="Type here..." autofocus />
+      <button>Send</button>
     </div>
   </div>
-  <script src="./index.js"></script>
+  <dialog id="dialog">
+    <h4 class="dialog-title"></h4>
+    <div class="dialog-content">
+    </div>
+  </dialog>
+  <script src="scripts/controller.js"></script>
+  <script src="scripts/main.js"></script>
 </body>
 
 </html>

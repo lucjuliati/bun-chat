@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "blessed": "^0.1.81",
+    "cheerio": "^1.1.2",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "zod": "^4.1.11"
