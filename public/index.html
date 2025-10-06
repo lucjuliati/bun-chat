@@ -12,18 +12,26 @@
     <div id="chat-header">
     </div>
     <div style="flex: 1; display: flex;">
-      <div id="chat-window"></div>
+      <div id="chat-window">
+        <div id="message-box">
+
+        </div>
+        <div id="chat-control">
+          <input type="text" id="terminal-input" value="" placeholder="Type here..." autofocus />
+          <button>Send</button>
+        </div>
+      </div>
       <div id="chat-menu">
         <fieldset class="status-box">
           <legend>Status</legend>
           <div>
-            <p style="color: tomato;">Disconnected</p>
-            <p>Room: None</p>
+            <p style="color: tomato;" id="status">Disconnected</p>
+            <p id="room">Room: None</p>
           </div>
         </fieldset>
         <fieldset class="command-box">
           <legend>Commands</legend>
-          <div>
+          <div class="command-list">
             <p>/rooms</p>
             <p>/join</p>
             <p>/clear</p>
@@ -33,18 +41,15 @@
         </fieldset>
       </div>
     </div>
-    <div id="chat-control">
-      <input type="text" id="terminal-input" value="" placeholder="Type here..." autofocus />
-      <button>Send</button>
-    </div>
   </div>
   <dialog id="dialog">
+    <a role="button" class="dialog-close">&times;</a>
     <h4 class="dialog-title"></h4>
     <div class="dialog-content">
     </div>
   </dialog>
-  <script src="scripts/controller.js"></script>
-  <script src="scripts/main.js"></script>
+  <script src="scripts/chat.js" type="module"></script>
+  <script src="scripts/controller.js" type="module"></script>
 </body>
 
 </html>
