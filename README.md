@@ -27,3 +27,10 @@ Simple WebSockets-based terminal chat application.
     ```bash
     bun run client
     ```
+
+3. **Web Interface**
+
+    Alternatively, you can access the client interface through a web browser by navigating 
+    to `http://localhost:4000/` in your browser with a running server instance.
+
+    
