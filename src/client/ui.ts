@@ -213,7 +213,7 @@ const styles: Styles = {
     height: "90%",
     scrollable: true,
     alwaysScroll: true,
-    content: "Use /rooms to list available rooms or /join to join/create a room",
+    content: "Welcome. use /rooms to list available rooms or /join to join/create a room",
     tags: true,
     border: { type: "bg" },
     style: {

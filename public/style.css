@@ -84,7 +84,7 @@ fieldset {
   overflow: hidden;
   border-radius: 3px;
   padding: 6px 10px;
-  min-height: 120px;
+  min-height: 80px;
   margin-bottom: 12px;
 
   legend {

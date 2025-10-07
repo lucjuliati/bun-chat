@@ -40,8 +40,10 @@ export class EventHandler {
         on_user_join: this.on_user_join.bind(this),
         on_user_leave: this.on_user_leave.bind(this),
       }
-
-      handlerMap[event.name](event.data)
+      
+      if (event?.name in handlerMap) {
+        handlerMap[event.name](event.data)
+      }
     } catch (err) {
       throw err
     }

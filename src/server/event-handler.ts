@@ -47,7 +47,7 @@ export class EventHandler {
           break
       }
     } catch (err) {
-      console.log(`Received non-JSON message: ${message}`)
+      console.error(`Received non-JSON message: ${message}`)
 
       if (err instanceof z.ZodError) {
         ws.send(JSON.stringify({ error: "Invalid message format" }))
@@ -71,6 +71,10 @@ export class EventHandler {
 
   private async list_rooms({ ws }: EventType["list_rooms"]) {
     await this.roomController.listRooms(ws)
+  }
+
+  public async unsubscribeWeb(server: Bun.Server, req: Request, res: Response) {
+    return await this.roomController.unsubscribeWeb(server, req, res)
   }
 
   public close(client: WSClient) {

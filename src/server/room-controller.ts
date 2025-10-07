@@ -70,21 +70,45 @@ export class RoomController {
         roomData.clients = roomData.clients.filter(c => c.data.id !== client.data.id)
       }
 
+      client.publish(room, JSON.stringify({
+        name: "on_user_leave",
+        data: { room, hash: client.data.id }
+      }))
       client.unsubscribe(room)
       client.data.rooms.delete(room)
-      client.send(JSON.stringify({ status: "unsubscribed", room }))
+
       logger([
         Text("RED", `${client.data.id}`),
         Text("RESET", `unsubscribed from ${room}`)
       ])
-
-      client.publish(room, JSON.stringify({
-        name: "on_user_join",
-        data: { room, hash: client.data.id }
-      }))
     } catch (err) {
       console.error(err)
     }
+  }
+
+  public async unsubscribeWeb(server: Bun.Server, req: Request, res: Response) {
+    try {
+      const data = await req.json()
+      const roomData = this.rooms.get(data.room!)
+
+      if (roomData) {
+        roomData.clients = roomData.clients.filter(c => c.data.id !== data.hash)
+      }
+
+      server.publish(data.room!, JSON.stringify({
+        name: "on_user_leave",
+        data: { room: data.room, hash: data.hash }
+      }))
+
+      logger([
+        Text("RED", `${data.hash}`),
+        Text("RESET", `unsubscribed from ${data.room}`)
+      ])
+    } catch (err) {
+      console.error(err)
+    }
+
+    return new Response()
   }
 
   public async publish(
@@ -104,6 +128,7 @@ export class RoomController {
         const chatMessage = {
           user: client.data.id,
           message,
+          raw: event.message,
           room: event.room,
           created_at: new Date().getTime()
         }
@@ -143,7 +168,6 @@ export class RoomController {
     try {
       await this.db.run(`DELETE FROM rooms WHERE name = ?`, [room])
       this.rooms.delete(room)
-      console.log(`Deleted room: ${room}`)
     } catch (err) {
       console.error(err)
     }

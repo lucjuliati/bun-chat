@@ -1,3 +1,5 @@
+const locale = navigator.language ?? "en-US"
+
 export class Chat {
   constructor() {
     this.input = document.querySelector("#terminal-input")
@@ -7,13 +9,12 @@ export class Chat {
     this.commandList = document.querySelector(".command-list")
     this.controller = null
     this.input.value = ""
+    this.history = []
+    this.historyIndex = -1
+    this.tempInput = ""
 
     this.sendBtn?.addEventListener("click", () => this.sendMessage())
-    this.input?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        this.sendMessage(e.target.value)
-      }
-    })
+    this.input?.addEventListener("keydown", (e) => this.handleKeyDown(e))
 
     this.dialog.addEventListener("click", (e) => {
       const rect = this.dialog.getBoundingClientRect()
@@ -50,13 +51,63 @@ export class Chat {
     this.controller = controller
   }
 
+  handleKeyDown(e) {
+    if (e.key === "Enter") {
+      this.sendMessage()
+      return
+    }
+
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault()
+
+      if (this.history.length === 0) return
+
+      if (this.historyIndex === -1) {
+        this.tempInput = this.input.value
+      }
+
+      if (e.key === "ArrowUp") {
+        if (this.historyIndex < this.history.length - 1) {
+          this.historyIndex++
+        }
+      } else if (e.key === "ArrowDown") {
+        if (this.historyIndex > -1) {
+          this.historyIndex--
+        }
+      }
+
+      if (this.historyIndex === -1) {
+        this.input.value = this.tempInput
+      } else {
+        const msg = this.history[this.history.length - 1 - this.historyIndex]
+        this.input.value = msg
+      }
+
+      this.input.setSelectionRange(this.input.value.length, this.input.value.length)
+    }
+  }
+
   sendMessage() {
-    const message = this.input.value.trim()
+    let message = this.input.value.trim()
     this.input.value = ""
 
     if (message.length === 0) return
 
-    if (message && this.controller.ws && this.controller.ws.readyState === WebSocket.OPEN) {
+    this.history.push(message)
+    this.history = Array.from(new Set([...this.history, message]))
+    this.historyIndex = -1
+    this.tempInput = ""
+
+    if (this.controller.ws.readyState !== WebSocket.OPEN) {
+      this.write("You aren't connected to the server!", { color: "tomato" })
+      return
+    }
+
+    if (message.length > 150) {
+      message = message.slice(0, 150)
+    }
+
+    if (message && this.controller.ws) {
       if (message.startsWith("/")) {
         this.controller.handleCommand(message)
         return
@@ -75,18 +126,37 @@ export class Chat {
 
   write(content, options) {
     const message = document.createElement("div")
-    message.textContent = content
 
     if (options?.color) {
       message.style.color = options.color
     }
 
     if (options?.timestamp) {
-      const locale = navigator.language ?? "en-US"
-      const date = new Date(options.timestamp).toLocaleDateString(locale, {
+      message.title = new Date(options.timestamp).toLocaleDateString(locale, {
         month: "long", year: "numeric", day: "numeric", hour: "numeric", minute: "numeric"
       })
-      message.title = date
+    }
+
+    if (options?.chat) {
+      const user = document.createElement("span")
+      const text = document.createElement("span")
+      const timestamp = document.createElement("span")
+      const date = new Date(options.timestamp).toLocaleTimeString(locale, {
+        hour: '2-digit', minute: '2-digit'
+      })
+
+      if (options.chat?.me == options.chat?.user) {
+        user.style.color = "orange"
+      }
+
+      user.innerHTML = options.chat.user
+      text.innerHTML = `: ${options.chat?.message}`
+      timestamp.innerHTML = `[${date}] `
+      message.appendChild(timestamp)
+      message.appendChild(user)
+      message.appendChild(text)
+    } else {
+      message.textContent = content
     }
 
     this.messageBox.appendChild(message)
@@ -105,13 +175,16 @@ export class Chat {
     const statusItem = document.querySelector(".status-box")
     const statusLabel = statusItem.querySelector("#status")
     const roomLabel = statusItem.querySelector("#room")
+    const hash = document.querySelector("#hash")
 
     if (connection.isConnected) {
       statusLabel.style.color = "#2db059ff"
       statusLabel.innerHTML = "Connected"
+      hash.innerHTML = `Hash: ${connection.hash}`
     } else {
       statusLabel.style.color = "tomato"
       statusLabel.innerHTML = "Disconnected"
+      hash.innerHTML = ""
     }
 
     if (connection.room) {

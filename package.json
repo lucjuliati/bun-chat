@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch src/server.ts",
+    "dev": "bun --watch src/server/index.ts",
     "server": "bun src/server/index.ts",
     "client": "bun src/client/index.ts"
   },

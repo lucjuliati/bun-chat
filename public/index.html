@@ -14,19 +14,20 @@
     <div style="flex: 1; display: flex;">
       <div id="chat-window">
         <div id="message-box">
-
+          Welcome. use /rooms to list available rooms or /join to join/create a room
         </div>
         <div id="chat-control">
-          <input type="text" id="terminal-input" value="" placeholder="Type here..." autofocus />
+          <input type="text" id="terminal-input" value="" placeholder="Type here..." autofocus maxlength="150" />
           <button>Send</button>
         </div>
       </div>
-      <div id="chat-menu">
+      <div id="chat-menu" style="opacity: 0.3;">
         <fieldset class="status-box">
           <legend>Status</legend>
           <div>
             <p style="color: tomato;" id="status">Disconnected</p>
             <p id="room">Room: None</p>
+            <p id="hash"></p>
           </div>
         </fieldset>
         <fieldset class="command-box">
