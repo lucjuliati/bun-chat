@@ -44,10 +44,7 @@ export function color(messages: string[] | string): string {
   return text
 }
 
-export default function logger(
-  messages: string[] | string,
-  options?: Options
-): string {
+export function logger(messages: string[] | string, options?: Options): string {
   let text = ""
 
   try {

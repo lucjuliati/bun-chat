@@ -1,27 +1,72 @@
 import { Chat } from "./chat.js"
 
+const address = `ws://${location.host}`
+const locale = navigator.language ?? "en-US"
+
 export class Controller {
   constructor(chat) {
     this.chat = chat
     this.chat.setController(this)
+
     this.connection = {
       isConnected: false,
       room: null,
       hash: null
     }
-    this.ws = new WebSocket(`ws://localhost:4000`)
-    this.ws.onopen = this.onOpen.bind(this)
-    this.ws.onmessage = this.onMessage.bind(this)
-    this.ws.onclose = this.onClose.bind(this)
-    this.ws.onerror = this.onError.bind(this)
+
+    this.reconnect = {
+      attempts: 0,
+      maxAttempts: 10,
+      interval: null,
+      delay: 2000
+    }
+
+    this.initWebSocket()
 
     window.addEventListener("beforeunload", () => {
       if (this.connection.isConnected) {
         navigator.sendBeacon("/close", JSON.stringify(this.connection))
       }
-
-      this.ws.close()
+      this.ws?.close()
     })
+  }
+
+  initWebSocket() {
+    this.ws = new WebSocket(address)
+    this.ws.onopen = this.onOpen.bind(this)
+    this.ws.onmessage = this.onMessage.bind(this)
+    this.ws.onclose = this.onClose.bind(this)
+    this.ws.onerror = this.onError.bind(this)
+  }
+
+  startReconnection() {
+    if (this.reconnect.interval) return
+
+    this.reconnect.attempts = 0
+    this.reconnect.interval = setInterval(() => {
+      if (this.reconnect.attempts >= this.reconnect.maxAttempts) {
+        clearInterval(this.reconnect.interval)
+        this.reconnect.interval = null
+        this.chat.write("Failed to reconnect after 10 attempts.", { color: "tomato" })
+        return
+      }
+
+      this.reconnect.attempts++
+
+      try {
+        this.ws = new WebSocket(address)
+        this.ws.onopen = () => {
+          clearInterval(this.reconnect.interval)
+          this.reconnect.interval = null
+          this.onOpen()
+        }
+        this.ws.onmessage = this.onMessage.bind(this)
+        this.ws.onclose = this.onClose.bind(this)
+        this.ws.onerror = this.onError.bind(this)
+      } catch (err) {
+        console.error("Reconnection attempt failed:", err)
+      }
+    }, this.reconnect.delay)
   }
 
   handleCommand(command) {
@@ -57,6 +102,13 @@ export class Controller {
 
   onOpen() {
     console.log("Connected to WebSocket server")
+    this.connection.isConnected = true
+    this.reconnect.attempts = 0
+
+    if (this.reconnect.interval) {
+      clearInterval(this.reconnect.interval)
+      this.reconnect.interval = null
+    }
   }
 
   onMessage(event) {
@@ -76,21 +128,10 @@ export class Controller {
         })
       }
 
-      if (eventData?.name == "on_join") {
-        this.onJoin(eventData)
-      }
-
-      if (eventData?.name == "on_user_join") {
-        this.onUserJoin(eventData)
-      }
-
-      if (eventData?.name == "on_user_leave") {
-        this.onUserLeave(eventData)
-      }
-
-      if (eventData?.name == "list_rooms") {
-        this.onListRooms(eventData)
-      }
+      if (eventData?.name == "on_join") this.onJoin(eventData)
+      if (eventData?.name == "on_user_join") this.onUserJoin(eventData)
+      if (eventData?.name == "on_user_leave") this.onUserLeave(eventData)
+      if (eventData?.name == "list_rooms") this.onListRooms(eventData)
     } catch (err) {
       console.error(err)
     }
@@ -106,28 +147,26 @@ export class Controller {
     let messages = []
     let lastDate = null
 
-    if (event.data.messages) {
-      messages = event.data.messages.reverse()
-    }
+    if (event.data.messages) messages = event.data.messages.reverse()
 
     if (messages.length > 0) {
       const date = new Date(Number(messages[0].created_at))
       if (date.getDate() != new Date().getDate()) {
-        this.chat.write(date.toLocaleDateString(navigator.language ?? "en-US"))
+        this.chat.write(date.toLocaleDateString(locale))
       }
     }
 
     messages?.forEach(message => {
       const date = new Date(Number(message.created_at))
-      const time = date.toLocaleTimeString(
-        navigator.language ?? "en-US",
-        { hour: '2-digit', minute: '2-digit' }
-      )
+      const time = date.toLocaleTimeString(locale, {
+        hour: '2-digit', minute: '2-digit'
+      })
+
       const content = `[${time}] ${message.user}: ${message.message}`
       this.chat.write(content, { timestamp: Number(message.created_at) })
 
       if (lastDate != null && (lastDate?.getDate() != date.getDate())) {
-        this.chat.write(date.toLocaleDateString(navigator.language ?? "en-US"))
+        this.chat.write(date.toLocaleDateString(locale))
       }
       lastDate = date
     })
@@ -142,8 +181,15 @@ export class Controller {
   }
 
   onClose(event) {
-    if (event.code === 1006) {
-      this.chat.write(`Connection error: ${event.reason}`)
+    this.connection.isConnected = false
+    this.chat.updateStatus(this.connection)
+
+    if (event.code !== 1000) {
+      this.chat.write(
+        "Disconnected from server. Attempting to reconnect...",
+        { color: "#efba52ff" }
+      )
+      this.startReconnection()
     }
   }
 
@@ -161,6 +207,7 @@ export class Controller {
     }
   }
 }
+
 
 const chat = new Chat()
 new Controller(chat)

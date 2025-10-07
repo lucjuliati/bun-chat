@@ -1,5 +1,5 @@
 import database from "@/lib/database"
-import logger, { Text } from "@/lib/logger"
+import { logger, Text } from "@/lib/logger"
 import type { WebSocketInstance } from "@/types"
 import { EventHandler } from "./event-handler"
 import { handleFetch } from "./routes"

@@ -1,5 +1,5 @@
 import type { SocketEvent, WSClient } from "@/types"
-import logger, { Text } from "@/lib/logger"
+import { logger, Text } from "@/lib/logger"
 import type { Database } from "sqlite"
 import { Room } from "@/types"
 
@@ -95,10 +95,12 @@ export class RoomController {
         roomData.clients = roomData.clients.filter(c => c.data.id !== data.hash)
       }
 
-      server.publish(data.room!, JSON.stringify({
-        name: "on_user_leave",
-        data: { room: data.room, hash: data.hash }
-      }))
+      if (data.room) {
+        server.publish(data.room, JSON.stringify({
+          name: "on_user_leave",
+          data: { room: data.room, hash: data.hash }
+        }))
+      }
 
       logger([
         Text("RED", `${data.hash}`),
