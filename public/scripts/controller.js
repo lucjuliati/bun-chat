@@ -82,7 +82,7 @@ export class Controller {
         return
       }
 
-      if (this.connection.isConnected) {
+      if (this.connection.room != null) {
         this.chat.write("You are already connected to a room. Use /leave to leave it.", { color: "tomato" })
         return
       }
@@ -97,6 +97,8 @@ export class Controller {
     } else if (command === "/clear") {
       this.chat.messageBox.innerHTML = ""
       this.chat.input?.focus()
+    } else {
+      this.chat.write(`Unknown command: "${command}"`, { color: "tomato" })
     }
   }
 
